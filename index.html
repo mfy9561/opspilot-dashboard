@@ -323,7 +323,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Score</th><th>Time</th></tr></thead>
+              <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Score</th><th>AI Follow-up</th><th>Time</th></tr></thead>
               <tbody id="dash-leads-table"><tr><td colspan="5" class="loading">Loading leads...</td></tr></tbody>
             </table>
           </div>
@@ -613,6 +613,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setDate();
   loadSettings();
   loadAllData();
+  // Auto refresh every 30 seconds
+  setInterval(() => { loadAllData(); }, 30000);
 
   // Nav
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
@@ -735,17 +737,19 @@ function updateBadges() {
 function renderDashLeads(leads) {
   const tbody = document.getElementById('dash-leads-table');
   const recent = leads.slice(0, 5);
-  if (!recent.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">No leads yet. Send a test lead via webhook!</td></tr>`; return; }
+  if (!recent.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No leads yet. Send a test lead via webhook!</td></tr>`; return; }
   tbody.innerHTML = recent.map(l => {
     const colors = { hot:'#EF4444', warm:'#F59E0B', cold:'#64748B' };
     const color = colors[l.status] || '#64748B';
     const score = l.score || 0;
     const initials = (l.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const followup = l.ai_followup ? `<span style="font-size:11px;color:var(--green)">✅ Sent</span>` : `<span style="font-size:11px;color:var(--muted)">—</span>`;
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar-sm" style="background:linear-gradient(135deg,${color},${color}99)">${initials}</div><span style="font-weight:500">${l.full_name||'Unknown'}</span></div></td>
       <td style="color:var(--muted)">${l.source||'—'}</td>
       <td><span class="badge badge-${l.status||'cold'}">${statusEmoji(l.status)} ${capitalize(l.status||'cold')}</span></td>
       <td><div class="score-bar"><div class="bar-track"><div class="bar-fill" style="width:${score}%;background:${color}"></div></div><span class="score-num">${score}</span></div></td>
+      <td>${followup}</td>
       <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${timeAgo(l.created_at)}</td>
     </tr>`;
   }).join('');
@@ -756,7 +760,7 @@ function renderDashEmails(emails) {
   const recent = emails.slice(0, 4);
   if (!recent.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px">No emails classified yet</td></tr>`; return; }
   tbody.innerHTML = recent.map(e => `<tr>
-    <td><div style="font-weight:500;font-size:12px">${e.email_id||'unknown@email.com'}</div><div style="font-size:11px;color:var(--muted)">${(e.summary||'').slice(0,40)}...</div></td>
+    <td><div style="font-weight:500;font-size:12px">${e.email_id||'Email'}</div><div style="font-size:11px;color:var(--muted)">${(e.summary||'No summary').slice(0,45)}...</div></td>
     <td><span class="badge badge-${e.category||'other'}">${capitalize(e.category||'other')}</span></td>
     <td><span class="badge badge-${e.priority||'low'}">${capitalize(e.priority||'low')}</span></td>
     <td style="font-size:12px">${sentimentEmoji(e.sentiment)} ${capitalize(e.sentiment||'neutral')}</td>
